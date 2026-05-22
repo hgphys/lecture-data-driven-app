@@ -1,4 +1,4 @@
-"""Minimal Streamlit spike for the 武生商工 outreach lecture (2026-05-27).
+"""Minimal Streamlit spike for the data-driven-app outreach material.
 
 Single product, hand-rolled form: prove that Streamlit + gspread + Sheets
 round-trip works end to end before building the 3-tab教材本体.
@@ -23,8 +23,8 @@ CATALOG = [
 ]
 
 
-st.set_page_config(page_title="武生商工デパート 事前注文（spike）", page_icon=None)
-st.title("武生商工デパート 事前注文（spike）")
+st.set_page_config(page_title="買い物アプリ（spike）", page_icon=None)
+st.title("買い物アプリ（spike）")
 st.caption("技術スパイク版: Streamlit + Google Sheets の動作確認用")
 
 ws = open_worksheet(ORDERS_SHEET, header=ORDERS_HEADER)
