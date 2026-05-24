@@ -114,12 +114,12 @@ def _add_to_cart(name: str) -> None:
     st.session_state.cart[name] = st.session_state.cart.get(name, 0) + 1
 
 
-def _remove_one(name: str) -> None:
-    cur = st.session_state.cart.get(name, 0)
-    if cur <= 1:
+def _set_quantity(name: str, key: str) -> None:
+    new_qty = int(st.session_state.get(key, 0))
+    if new_qty <= 0:
         st.session_state.cart.pop(name, None)
     else:
-        st.session_state.cart[name] = cur - 1
+        st.session_state.cart[name] = new_qty
 
 
 def _clear_cart() -> None:
@@ -162,14 +162,18 @@ def _render_cart() -> None:
     st.markdown(f"### 合計: ¥{total:,}")
 
     for it in items:
-        c1, c2 = st.columns([4, 1])
-        c1.write(f"・{it['name']} ×{it['quantity']}")
-        c2.button(
-            "−1",
-            key=f"rm-{it['name']}",
-            on_click=_remove_one,
-            args=(it["name"],),
-            use_container_width=True,
+        c1, c2 = st.columns([3, 2])
+        c1.write(f"・{it['name']}")
+        sel_key = f"qty-{it['name']}"
+        max_opt = max(10, it["quantity"])
+        c2.selectbox(
+            "数量",
+            options=list(range(0, max_opt + 1)),
+            index=it["quantity"],
+            key=sel_key,
+            on_change=_set_quantity,
+            args=(it["name"], sel_key),
+            label_visibility="collapsed",
         )
 
     c1, c2 = st.columns([1, 1])
