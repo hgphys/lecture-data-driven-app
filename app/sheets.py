@@ -40,6 +40,10 @@ USERS_HEADER = ["handle", "registered_at", "grade", "gender", "interests"]
 ORDERS_SHEET = "orders"
 ORDERS_HEADER = ["timestamp", "order_id", "handle", "product", "category", "price", "quantity"]
 
+CONFIG_SHEET = "_config"
+CONFIG_HEADER = ["key", "value"]
+DEFAULT_USER_PASSWORD = "shop"
+
 
 def _load_config() -> tuple[dict, str]:
     try:
@@ -128,3 +132,54 @@ def summary_counts() -> dict:
         "orders": max(0, len(set(orders[1:]))),
         "items": max(0, len(orders) - 1),
     }
+
+
+def all_orders() -> list[dict]:
+    return orders_worksheet().get_all_records()
+
+
+def all_users() -> list[dict]:
+    return users_worksheet().get_all_records()
+
+
+def _config_worksheet() -> gspread.Worksheet:
+    return _open_worksheet(CONFIG_SHEET, CONFIG_HEADER)
+
+
+def _config_get_all() -> dict[str, str]:
+    rows = _config_worksheet().get_all_records()
+    return {str(r.get("key", "")): str(r.get("value", "")) for r in rows if r.get("key")}
+
+
+def get_config(key: str, default: str = "") -> str:
+    return _config_get_all().get(key, default)
+
+
+def set_config(key: str, value: str) -> None:
+    ws = _config_worksheet()
+    rows = ws.get_all_records()
+    for idx, r in enumerate(rows, start=2):  # row 1 = header
+        if str(r.get("key", "")) == key:
+            ws.update_cell(idx, 2, value)
+            return
+    ws.append_row([key, value], value_input_option="USER_ENTERED")
+
+
+def get_user_password() -> str:
+    pw = get_config("user_password", "")
+    if not pw:
+        set_config("user_password", DEFAULT_USER_PASSWORD)
+        return DEFAULT_USER_PASSWORD
+    return pw
+
+
+def set_user_password(new_password: str) -> None:
+    set_config("user_password", new_password)
+
+
+def reset_data() -> None:
+    """Clear all rows below the header in users / orders worksheets."""
+    for ws in (users_worksheet(), orders_worksheet()):
+        n_rows = len(ws.col_values(1))
+        if n_rows > 1:
+            ws.delete_rows(2, n_rows)

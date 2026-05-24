@@ -1,9 +1,10 @@
 """Shopping demo for the data-driven-app outreach material.
 
 Flow:
+    0. ログイン     — パスワードでユーザ/教員を振り分け
     1. ユーザ登録   — handle + 学年 + 性別(任意) + 興味カテゴリ(任意)
     2. 買い物体験   — カタログから選んでカート → 注文確定 → 履歴を見る
-    3. 全体カウント — 現在の参加者数・注文数をフッタに表示
+    3. 教員ページ   — 集計・パスワード管理・データリセット
 """
 
 from __future__ import annotations
@@ -11,7 +12,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
-from app import sheets
+from app import admin, sheets
 from app.catalog import CATALOG, CATEGORIES, find
 
 
@@ -24,9 +25,58 @@ st.set_page_config(page_title="買い物アプリ", page_icon=None, layout="wide
 
 def _init_state() -> None:
     ss = st.session_state
+    ss.setdefault("auth_role", None)  # None | "user" | "teacher"
     ss.setdefault("step", "register")
     ss.setdefault("handle", "")
-    ss.setdefault("cart", {})  # {product_name: quantity}
+    ss.setdefault("cart", {})
+
+
+def _teacher_password() -> str:
+    try:
+        return str(st.secrets["teacher_password"])
+    except Exception:
+        return ""
+
+
+def _logout() -> None:
+    for k in ("auth_role", "step", "handle", "cart", "last_order_id", "_reset_armed"):
+        st.session_state.pop(k, None)
+    st.session_state.step = "register"
+    st.rerun()
+
+
+def _render_login() -> None:
+    st.title("買い物アプリ — ログイン")
+    st.caption("教員から共有されたパスワードを入力してください。")
+    with st.form("login"):
+        pw = st.text_input("パスワード", type="password", max_chars=40)
+        submitted = st.form_submit_button("ログイン")
+    if not submitted:
+        return
+
+    pw = (pw or "").strip()
+    if not pw:
+        st.error("パスワードを入力してください")
+        return
+
+    teacher_pw = _teacher_password()
+    if teacher_pw and pw == teacher_pw:
+        st.session_state.auth_role = "teacher"
+        st.rerun()
+        return
+
+    try:
+        user_pw = sheets.get_user_password()
+    except Exception as e:
+        st.error(f"認証情報の取得に失敗しました: {e}")
+        return
+
+    if pw == user_pw:
+        st.session_state.auth_role = "user"
+        st.rerun()
+        return
+
+    st.error("パスワードが違います")
 
 
 def _render_register() -> None:
@@ -145,27 +195,29 @@ def _render_history() -> None:
     st.dataframe(df.iloc[::-1], hide_index=True, use_container_width=True)
 
 
-def _render_sidebar() -> None:
+def _render_user_sidebar() -> None:
     with st.sidebar:
-        st.markdown(f"**参加者**: {st.session_state.handle}")
-        if st.button("登録をやり直す"):
-            for k in ("handle", "cart"):
-                st.session_state.pop(k, None)
-            st.session_state.step = "register"
-            st.rerun()
-        st.divider()
-        st.caption("現在の参加状況")
-        try:
-            counts = sheets.summary_counts()
-            st.metric("参加者数", counts["users"])
-            st.metric("注文件数", counts["orders"])
-            st.metric("購入アイテム数", counts["items"])
-        except Exception as e:
-            st.caption(f"集計取得に失敗: {e}")
+        if st.session_state.handle:
+            st.markdown(f"**参加者**: {st.session_state.handle}")
+            if st.button("登録をやり直す"):
+                for k in ("handle", "cart"):
+                    st.session_state.pop(k, None)
+                st.session_state.step = "register"
+                st.rerun()
+            st.divider()
+        if st.button("ログアウト"):
+            _logout()
+
+
+def _render_teacher_sidebar() -> None:
+    with st.sidebar:
+        st.markdown("**役割**: 教員モード")
+        if st.button("ログアウト"):
+            _logout()
 
 
 def _render_shop() -> None:
-    _render_sidebar()
+    _render_user_sidebar()
     oid = st.session_state.pop("last_order_id", None)
     if oid:
         st.success(f"注文を受け付けました（注文番号: {oid}）")
@@ -179,12 +231,24 @@ def _render_shop() -> None:
     _render_history()
 
 
-def main() -> None:
-    _init_state()
+def _render_user_flow() -> None:
     if st.session_state.step == "register":
+        _render_user_sidebar()
         _render_register()
     else:
         _render_shop()
+
+
+def main() -> None:
+    _init_state()
+    role = st.session_state.auth_role
+    if role is None:
+        _render_login()
+    elif role == "teacher":
+        _render_teacher_sidebar()
+        admin.render()
+    else:
+        _render_user_flow()
 
 
 main()

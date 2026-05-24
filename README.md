@@ -3,6 +3,9 @@
 高校生向け出張授業教材：「買い物アプリ」を題材にした
 データ駆動アプリ体験。
 
+- **Live URL**: https://lecture-shopping-app.streamlit.app/
+  （Streamlit Community Cloud 無料枠。一定時間アクセスがないとスリープするので、授業前に起こす必要あり）
+
 - 1 つの Streamlit アプリの 3 タブで L1（動作代替）/ L2（記憶あり）/ L3（データ駆動）
   の段階モデルを内包
 - バックエンド：Google Sheets（gspread）
