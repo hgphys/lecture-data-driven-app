@@ -11,9 +11,6 @@
 - バックエンド：Google Sheets（gspread）
 - ホスティング：Streamlit Community Cloud
 
-設計ドキュメントは Lab 内 `Lab/Lectures/outreach/data-driven-app/overview.md`
-（このリポジトリ外）を参照。
-
 ## ローカル開発
 
 ```bash
@@ -21,11 +18,8 @@ uv sync
 uv run streamlit run streamlit_app.py
 ```
 
-サービスアカウント鍵は次のいずれかから読まれる（`app/sheets.py`）:
-
-1. `.streamlit/secrets.toml`（`.gitignore` 済み）
-2. 上記が無ければ `../private/credentials/<key>.json` をフォールバックで使う
-   （リポジトリ外の Dropbox ローカル領域）
+サービスアカウント鍵は `.streamlit/secrets.toml`（`.gitignore` 済み）から
+読み込む（`app/sheets.py`）。雛形は `.streamlit/secrets.toml.example` を参照。
 
 ## Streamlit Community Cloud デプロイ
 

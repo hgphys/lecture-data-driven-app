@@ -69,7 +69,11 @@ def _grade_category(orders_df: pd.DataFrame, users_df: pd.DataFrame) -> None:
 
 def _password_section() -> None:
     st.subheader("ユーザパスワードの管理")
-    current = sheets.get_user_password()
+    try:
+        current = sheets.get_user_password()
+    except Exception as e:
+        st.warning(f"パスワードの取得に失敗しました（時間をおいて再読み込みしてください）: {e}")
+        return
     st.write(f"現在のパスワード: `{current}`")
     st.caption("ユーザが買い物アプリにログインするときに入力するパスワードです。生徒には授業開始時に共有してください。")
     with st.form("change_pw", clear_on_submit=True):
